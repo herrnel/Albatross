@@ -18,7 +18,7 @@ class ActionSenderConfig:
     max_yaw_rate_rads: float = 1.5
 
 
-class MavlinkActionAdapter:
+class MavlinkActionSenderAdapter:
     def __init__(self, mav_connection, cfg: Optional[ActionSenderConfig] = None):
         self.cfg = cfg or ActionSenderConfig()
         self._mav: Optional[mavutil.mavfile] = mav_connection
