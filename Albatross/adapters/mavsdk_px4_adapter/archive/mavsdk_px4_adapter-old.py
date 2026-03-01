@@ -9,8 +9,8 @@ from typing import Optional
 import numpy as np
 from pymavlink import mavutil
 
-from core.types import Telemetry
-from adapters.base_adapter import BaseAdapter
+from core.types.data import Telemetry
+from adapters.adapter_base.base_adapter import BaseAdapter
 
 
 # We want to intentionally throw away extra info we get from SITL 

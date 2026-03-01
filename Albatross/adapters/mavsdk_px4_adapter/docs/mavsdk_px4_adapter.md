@@ -9,10 +9,12 @@
 - This seems to be the right link to the protocol we will be using [ARDUPILOT](https://ardupilot.org/copter/docs/ArduCopter_MAVLink_Messages.html#arducopter-mavlink-messages)
 
 - To mimic real life streaming inputs, we should probably use **Stream Groups** as mentioned in the ARDUPILOT documentation. 
+- We will read telemetry and output commands using  *mavlink_telemetry_adapter.py*
 
 ### Streaming Video from a Mono-Cam
 
 - We can stream video from the drone to our adapter using the [GstCameraSystem](https://docs.px4.io/main/en/sim_gazebo_gz/plugins) plugin which Streams camera feeds via UDP (RTP/H.264) or RTMP with optional NVIDIA CUDA hardware acceleration.
+- To read and format this video data we will need an adapter specialized for this task. *gst_camera_adapter.py*
 
 ***What won’t match (important expectations)***
 

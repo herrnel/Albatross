@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from core.types import Telemetry
+from core.types.data import Telemetry
 
 class BaseAdapter(ABC):
     @abstractmethod

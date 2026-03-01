@@ -53,10 +53,10 @@ class Observation:
 @dataclass
 class Action:
     t: float
-    throttle: float
-    roll: float
-    pitch: float
-    yaw: float
+    throttle: float            # 0..1
+    roll: float                # -1..1 normalized
+    pitch: float               # -1..1 normalized
+    yaw: float                 # -1..1 normalized (interpreted as yaw rate command) 
     confidence: float          # policy confidence or NA
 
 @dataclass
