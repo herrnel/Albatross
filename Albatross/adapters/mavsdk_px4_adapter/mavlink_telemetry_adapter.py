@@ -19,17 +19,11 @@ class TelemetryEmulation:
 
 
 class MavlinkTelemetryAdapter:
-    def __init__(
-        self,
-        mav_connection,
-        emu: Optional[TelemetryEmulation] = None,
-    ):
+    def __init__(self, mav_connection: mavutil.mavfile, emu: Optional[TelemetryEmulation] = None):
         self._mav = mav_connection
         self.emu = emu or TelemetryEmulation()
 
-        self._mav: Optional[mavutil.mavfile] = None
         self._t0: Optional[float] = None
-
         self._lock = threading.Lock()
         self._stop = False
         self._rx_thread: Optional[threading.Thread] = None
@@ -37,12 +31,12 @@ class MavlinkTelemetryAdapter:
         self._last_local_pos_ned: Optional[dict] = None
         self._last_att_quat: Optional[dict] = None
 
-    def connect(self) -> None:
+    def start(self) -> None:
         self._t0 = time.time()
-
         self._stop = False
         self._rx_thread = threading.Thread(target=self._rx_loop, daemon=True)
         self._rx_thread.start()
+
 
     def close(self) -> None:
         self._stop = True
@@ -50,7 +44,7 @@ class MavlinkTelemetryAdapter:
             self._rx_thread.join(timeout=1.0)
 
     def read(self) -> Telemetry:
-        assert self._t0 is not None, "Call connect() first."
+        assert self._t0 is not None, "Call start() first."
 
         # Wait briefly for first data
         deadline = time.time() + 2.0

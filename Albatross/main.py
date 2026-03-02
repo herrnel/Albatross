@@ -14,6 +14,7 @@ def main():
         mav_endpoint="udpin:0.0.0.0:14540",
     )
     adapter.connect()
+    adapter.sender.begin_offboard_and_arm()
 
     # (Optional) If you implemented offboard/arm helpers inside adapter.sender:
     # adapter.sender.begin_offboard_and_arm()
@@ -21,22 +22,43 @@ def main():
     hz = 30.0
     dt = 1.0 / hz
     try:
-        while True:
+        # while True:
+        #     last = 0
+        #     if time.time() - last > 1.0:
+        #         print_hb(adapter.mav)   # expose mav on unified adapter
+        #         last = time.time()
+                
+        #     raw = adapter.read()
+
+        #     # dummy policy
+        #     action = Action(
+        #         t=raw.telemetry.t,
+        #         throttle=0.55,
+        #         roll=0.0,
+        #         pitch=0.0,
+        #         yaw=0.0,
+        #     )
+
+        #     adapter.send(action)
+        #     time.sleep(dt)
+        
+        t0 = time.time()
+        while time.time() - t0 < 2.0:
             raw = adapter.read()
-
-            # dummy policy
-            action = Action(
-                t=raw.telemetry.t,
-                throttle=0.55,
-                roll=0.0,
-                pitch=0.0,
-                yaw=0.0,
-            )
-
+            action = Action(t=raw.telemetry.t, throttle=0.6, roll=0.0, pitch=0.0, yaw=0.0)
             adapter.send(action)
-            time.sleep(dt)
+            time.sleep(1/30)
     finally:
         adapter.close()
+        
+        
+def print_hb(mav):
+    msg = mav.recv_match(type="HEARTBEAT", blocking=True, timeout=1.0)
+    if msg is None:
+        print("No heartbeat")
+        return
+    armed = (msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
+    print(f"HB armed={armed} base_mode={msg.base_mode} custom_mode={msg.custom_mode}")       
 
 
 if __name__ == "__main__":

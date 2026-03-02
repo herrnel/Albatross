@@ -22,6 +22,7 @@ class MavlinkActionSenderAdapter:
     def __init__(self, mav_connection, cfg: Optional[ActionSenderConfig] = None):
         self.cfg = cfg or ActionSenderConfig()
         self._mav: Optional[mavutil.mavfile] = mav_connection
+        self._t0 = time.time()   # <-- add this
 
     def close(self) -> None:
         pass
@@ -47,49 +48,64 @@ class MavlinkActionSenderAdapter:
         # MAV_MODE_FLAG_CUSTOM_MODE_ENABLED + custom_mode for OFFBOARD
         # This can vary; treat as best-effort.
         self._mav.set_mode("OFFBOARD")
+        
+    def begin_offboard_and_arm(self, warmup_s: float = 0.7, hz: float = 30.0):
+        dt = 1.0 / hz
+        t_end = time.time() + warmup_s
+        while time.time() < t_end:
+            neutral = Action(t=0.0, throttle=0.0, roll=0.0, pitch=0.0, yaw=0.0)
+            self.send(neutral)
+            time.sleep(dt)
+        self.set_offboard_mode()
+        time.sleep(0.1)
+        self.arm()
 
     # ---------- Sending ----------
     def send(self, action: Action) -> None:
         """
-        Sends an attitude/thrust setpoint derived from normalized (throttle, roll, pitch, yaw).
-
-        - roll/pitch: interpreted as desired angles (rad) scaled by max_*
-        - yaw: interpreted as desired yaw rate (rad/s) scaled by max_yaw_rate_rads
-        - throttle: interpreted as thrust 0..1
+        Interpret Action roll/pitch as desired XY velocity direction (normalized),
+        throttle as forward speed scaling (0..1), yaw as yaw-rate command.
+        This gives you an easy “racer control” interface now.
         """
-        assert self._mav is not None
+        # Map controls -> NED velocity setpoint
+        # Convention: +vx forward (North), +vy right (East), +vz down.
+        vx = float(action.throttle) * self.cfg.max_vx
+        vy = float(action.roll) * self.cfg.max_vy
+        vz = float(action.pitch) * self.cfg.max_vz   # careful: pitch maps to vertical for now (simple)
+        yaw_rate = float(action.yaw) * self.cfg.max_yaw_rate
 
-        # Scale normalized to physical-ish commands
-        roll = float(action.roll) * self.cfg.max_roll_rad
-        pitch = float(action.pitch) * self.cfg.max_pitch_rad
-        yaw_rate = float(action.yaw) * self.cfg.max_yaw_rate_rads
-        thrust = float(action.throttle)
+        # Clamp
+        vx = max(-self.cfg.max_vx, min(self.cfg.max_vx, vx))
+        vy = max(-self.cfg.max_vy, min(self.cfg.max_vy, vy))
+        vz = max(-self.cfg.max_vz, min(self.cfg.max_vz, vz))
 
-        # Build a quaternion for roll/pitch only (ignore yaw angle, use yaw rate)
-        # Simple small-angle composition is okay for baseline; for higher fidelity use proper quaternion math.
-        # We'll do a proper conversion:
-        q = _quat_from_roll_pitch(roll, pitch)
+        time_boot_ms = int((time.time() - self._t0) * 1000) & 0xFFFFFFFF
 
-        # Type mask:
-        # bit 0: ignore body roll rate
-        # bit 1: ignore body pitch rate
-        # bit 2: ignore body yaw rate  (we will NOT ignore yaw rate -> clear this bit)
-        # bit 3: ignore attitude       (we will NOT ignore attitude -> clear this bit)
-        # bit 4: ignore thrust         (we will NOT ignore thrust -> clear this bit)
-        # We want: use attitude + yaw rate + thrust, ignore roll/pitch body rates.
-        type_mask = 0b00000011  # ignore body roll/pitch rates
+        # Type mask: ignore position, accel, yaw angle; use vx,vy,vz and yaw_rate
+        type_mask = (
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_X_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_Z_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE
+            # DO NOT ignore vx/vy/vz or yaw_rate
+        )
 
-        self._mav.mav.set_attitude_target_send(
-            int(time.time() * 1e6),
+        self._mav.mav.set_position_target_local_ned_send(
+            time_boot_ms,
             self._mav.target_system,
             self._mav.target_component,
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,
             type_mask,
-            q,            # q1,q2,q3,q4 (w,x,y,z)
-            0.0,          # body_roll_rate ignored
-            0.0,          # body_pitch_rate ignored
-            yaw_rate,     # body_yaw_rate used
-            thrust
+            0.0, 0.0, 0.0,   # x,y,z ignored
+            vx, vy, vz,      # velocity setpoints USED
+            0.0, 0.0, 0.0,   # accel ignored
+            0.0,             # yaw ignored
+            yaw_rate         # yaw rate USED
         )
+        
 
 
 def _quat_from_roll_pitch(roll: float, pitch: float):

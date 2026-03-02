@@ -25,7 +25,18 @@ Even with this approach, remember:
 - The stream may be encoded (H.264) → you’ll decode, which adds latency.
  
 
-# Simulation Commands
+# Simulation 
+
+**(Open QGroundControl)**
+- It should auto-connect to SITL (often UDP port 14550 / 14540 depending on setup)
+- Opening up QGC and having it connected to PX4 usually satifies:
+
+```
+WARN  [health_and_arming_checks] Preflight Fail: No connection to the GCS
+WARN  [commander] Arming denied: Resolve system health failures first
+```
+
+
 
 **(Terminal 1)** \
 Run the simulation using:
@@ -35,9 +46,31 @@ make px4_sitl gz_x500_mono_cam
 ```
 
 **(Terminal 2)** \
+Fan-out RTP packets to two local ports using:
+
+- Fanner listens on 5600 and splits into:
+- Python listens on 5601
+- gst-launch viewer listens on 5602
+
+```
+gst-launch-1.0 -v \
+  udpsrc port=5600 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
+  ! tee name=t \
+  t. ! queue ! udpsink host=127.0.0.1 port=5601 sync=false async=false \
+  t. ! queue ! udpsink host=127.0.0.1 port=5602 sync=false async=false
+```
+
+**(Terminal 3)** \
 View the mono-camera feed using:
 
 ```
-gst-launch-1.0 -v udpsrc port=5600 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
- ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
+gst-launch-1.0 -v \
+  udpsrc port=5602 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
+  ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
 ```
+
+
+# Simulation Observations
+
+- “takeoff threshold” for this model + this sim state is around 0.836 (at least at that moment).
+- Once the craft starts moving, the required thrust changes slightly (ground effect, controller, battery sim, etc.), so "hover thrust" is not a single universal constant - but 0.836 is the right ballpark for take off. 

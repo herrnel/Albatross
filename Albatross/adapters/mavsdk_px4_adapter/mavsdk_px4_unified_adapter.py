@@ -36,12 +36,14 @@ class UnifiedPx4GzAdapter:
         self.mav = make_mavlink_connection(self.mav_endpoint)
         
         # Camera: RTP/H264 on UDP 5600 (adjust if your stream uses a different port)
-        self.camera = GstCameraAdapter(GstCameraConfig(udp_port=5600))
+        self.camera = GstCameraAdapter(GstCameraConfig(udp_port=5601))
         
         # Initialize the mavlink telemetry retriever and action sender
         self.telemetry = MavlinkTelemetryAdapter(self.mav)
         self.sender = MavlinkActionSenderAdapter(self.mav)
-
+        
+        self.telemetry.start()
+        
         # Camera last (so if it fails you already know MAVLink is ok)
         self.camera.connect()
 
