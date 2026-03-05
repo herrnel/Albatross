@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from core.types.data import Telemetry
+from Albatross.core.types.archive.data import Telemetry
 
 class BaseAdapter(ABC):
     @abstractmethod

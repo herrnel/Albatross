@@ -9,8 +9,8 @@ from typing import Optional
 import numpy as np
 from pymavlink import mavutil
 
-from core.types.data import Telemetry
-from adapters.adapter_base.base_adapter import BaseAdapter
+from Albatross.core.types.archive.data import Telemetry
+from Albatross.adapters.adapter_base.archive.base_adapter import BaseAdapter
 
 
 # We want to intentionally throw away extra info we get from SITL 

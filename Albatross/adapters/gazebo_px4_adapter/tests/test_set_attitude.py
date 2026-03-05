@@ -137,7 +137,7 @@ def main():
 
     # Thrust tuning: hover varies by model. We use:
     hover_thrust = 0.74
-    takeoff_thrust = 0.82  # short bump to break ground contact safely
+    takeoff_thrust = 0.87  # short bump to break ground contact safely
 
     # Phase durations
     warmup_s = 2.0
@@ -147,7 +147,7 @@ def main():
     cooldown_s = 1.0
 
     # Attitude commands
-    pitch_forward = math.radians(10.0)  # +10° pitch
+    pitch_forward = math.radians(-10.0)  # +10° pitch
     roll_cmd = 0.0
 
     # Yaw: keep angle 0 in quaternion, use yaw_rate if desired
@@ -221,11 +221,11 @@ def main():
         request_offboard(mav)
 
         # # 4) Takeoff bump (level attitude, slightly higher thrust)
-        # print("[phase] takeoff bump: level attitude, higher thrust")
-        # stream_for(takeoff_bump_s, roll=0.0, pitch=0.0, thrust=takeoff_thrust, yaw_rate=0.0)
+        print("[phase] takeoff bump: level attitude, higher thrust")
+        stream_for(takeoff_bump_s, roll=0.0, pitch=0.0, thrust=takeoff_thrust, yaw_rate=0.0)
         
-        print("[phase] takeoff ramp: level attitude")
-        thrust_ramp_find_takeoff(2.0, hover_thrust, 0.88)
+        # print("[phase] takeoff ramp: level attitude")
+        # thrust_ramp_find_takeoff(2.0, hover_thrust, 0.88)
 
         # 5) Active: pitch forward (back to hover-ish thrust)
         print("[phase] active: pitch forward")

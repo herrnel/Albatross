@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from core.types.data import Frame
+from Albatross.core.types.archive.data import Frame
 
 import gi
 gi.require_version("Gst", "1.0")
@@ -15,16 +15,10 @@ from gi.repository import Gst
 @dataclass
 class GstCameraConfig:
     udp_port: int = 5601
-    payload: int = 96  # if unspecified in caps, 96 is common; we can omit too
     timeout_s: float = 5.0
 
 
 class GstCameraAdapter:
-    """
-    UDP RTP/H264 -> decoded RGB frames via GStreamer appsink -> numpy.
-    Works even when OpenCV is built without GStreamer (your case).
-    """
-
     def __init__(self, cfg: GstCameraConfig):
         self.cfg = cfg
         self._t0: Optional[float] = None
@@ -33,12 +27,12 @@ class GstCameraAdapter:
         self.appsink = None
 
         self._latest_frame: Optional[np.ndarray] = None
+        self._latest_t: Optional[float] = None
 
     def connect(self) -> None:
         Gst.init(None)
         self._t0 = time.time()
 
-        # Your gst-launch works with caps that omit payload; we’ll match that.
         caps = (
             "application/x-rtp, "
             "media=(string)video, "
@@ -68,25 +62,25 @@ class GstCameraAdapter:
         if self.pipeline is not None:
             self.pipeline.set_state(Gst.State.NULL)
 
-    def read(self) -> Frame:
+    def latest(self) -> Optional[Frame]:
         """
-        Returns the most recent decoded frame. Blocks until at least one arrives.
+        Non-blocking: returns latest Frame or None until camera starts producing.
+        """
+        if self._t0 is None or self._latest_frame is None or self._latest_t is None:
+            return None
+        return Frame(t=self._latest_t, image=self._latest_frame.copy(), camera_info=None)
+
+    def read_blocking(self) -> Frame:
+        """
+        Blocking: waits for first frame then returns newest.
         """
         assert self._t0 is not None
-
         deadline = time.time() + self.cfg.timeout_s
         while self._latest_frame is None and time.time() < deadline:
             time.sleep(0.005)
-
-        if self._latest_frame is None:
-            raise RuntimeError(
-                f"No frames received within {self.cfg.timeout_s}s from UDP port {self.cfg.udp_port}. "
-                "Stream exists (gst-launch works), so this usually means caps mismatch or decode not available."
-            )
-
-        t = time.time() - self._t0
-        # Copy so downstream code can safely mutate without racing updates
-        return Frame(t=t, image=self._latest_frame.copy())
+        if self._latest_frame is None or self._latest_t is None:
+            raise RuntimeError(f"No frames within {self.cfg.timeout_s}s on UDP {self.cfg.udp_port}")
+        return Frame(t=self._latest_t, image=self._latest_frame.copy(), camera_info=None)
 
     def _on_new_sample(self, sink) -> Gst.FlowReturn:
         sample = sink.emit("pull-sample")
@@ -101,9 +95,11 @@ class GstCameraAdapter:
             return Gst.FlowReturn.ERROR
 
         try:
-            data = map_info.data  # bytes-like
+            data = map_info.data
             frame = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3))
             self._latest_frame = frame
+            assert self._t0 is not None
+            self._latest_t = time.time() - self._t0
         finally:
             buf.unmap(map_info)
 
