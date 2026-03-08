@@ -1,4 +1,5 @@
 from core.types.module.module_type import FixedRateThread
+from core.types.
 
 class ControlModule(FixedRateThread):
     def __init__(self, bus: Bus, hz: float = 500.0):

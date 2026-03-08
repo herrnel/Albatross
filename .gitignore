@@ -2,3 +2,4 @@ __pycache__/
 .venv-albatross
 px4_venvs/
 ..gitignore.un~
+Albatross/adapters/.DS_Store

@@ -19,3 +19,5 @@ class FrameMsg:
     t: float                 # capture time
     frame_id: int
     image: np.ndarray        # HxWxC uint8
+
+
