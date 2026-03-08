@@ -1,7 +1,10 @@
 import time
 
 from adapters.adapter_base.platform_adapter import PlatformAdapter
-from core.types.message_bus.bus_types import Bus
+from drones.drone_base.drone_base import Drone
+from core.types.telemetry.shared_state import SharedState
+
+import threading
 
 
 class Runner:
@@ -9,9 +12,9 @@ class Runner:
     Here make an attempt to have the runner loop run at 500hz but its not necessary. 
     This should 
     """
-    def __init__(self, drone: DroneType,  adapter: PlatformAdapter, bus: Bus, modules: list):
-        self.adapter = adapter
+    def __init__(self, drone: Drone,  adapter: PlatformAdapter, modules: list):
         self.drone = drone
+        self.adapter = adapter
         self.modules = modules
         self._running = False
 
@@ -26,11 +29,10 @@ class Runner:
         # This shared object will be the drone essentially for this project. It will be the abstraction of the 
         # Drone we care about. 
 
-        shared = SharedState()
         # Initial the drone which wraps the SharedState and holds a drones configuration i.e weight etc. 
-        self.drone(Shared)
-        self.drone.configure()
-        stop_evt = threading.Event()
+        self.shared = SharedState()
+        # Initialize the drone using the adapter, SharedState and modules
+        self.drone.setup(self.adapter, self.shared, self.modules)
         t0 = time.time() # Timer for tracking Hz
         
         
@@ -46,9 +48,9 @@ class Runner:
 
         try:
             
-            self.drone.pump_start
-            self.drone.send_start
-            self.drone.print_start
+            self.drone.pump_start()
+            self.drone.send_start()
+            self.drone.print_start()
    
             
             
@@ -76,7 +78,7 @@ class Runner:
             self.drone.disarm()
             
         finally: 
-            stop_evt.set()
+            self.drone.stop_evt.set()
             time.sleep(0.3)
 
             # best effort neutral stream one last time
@@ -84,7 +86,6 @@ class Runner:
                 for _ in range(10):
                     # This is giving us direct access to an adapater command to regain control. 
                     self.drone.send_attitude_target(
-                        mav,
                         t0,
                         roll=0.0,
                         pitch=0.0,

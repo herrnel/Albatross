@@ -8,10 +8,13 @@ class ImuMsg:
     accel: np.ndarray        # (3,) m/s^2
     gyro: np.ndarray         # (3,) rad/s
     
-class Telemetry:
+class AttitudeData:
     t: float               # seconds (sim time if provided)
     vel: np.ndarray        # (3,)
-    quat: np.ndarray       # (4,) w,x,y,z
+    quat: np.ndarray       # (4,) w,x,y,z (This is used instead of roll, pitch, and yaw degrees)
+    # rollspeed: float     # Don't know if we will have this yet. 
+    # pitchspeed: float
+    # yawspeed: float
     imu: Optional[ImuMsg]  # Contains IMU data. 
 
 @dataclass(frozen=True)
@@ -20,4 +23,9 @@ class FrameMsg:
     frame_id: int
     image: np.ndarray        # HxWxC uint8
 
-
+@dataclass
+class LocalPositionNED:
+    t: float
+    x: float
+    y: float
+    z: float
