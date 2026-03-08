@@ -17,6 +17,10 @@ class Drone(ABC):
     shared_data: SharedState
     adapter: PlatformAdapter
     hover_thrust: int
+    takeoff_thrust: int
+    send_thread: threading # Continous Sending of Telemetry
+    pump_thread: threading # Continous Reading of Telemetry
+    print_thread: threading 
     
     def __init__(self):
         # This is used by th runner to stop all loops in the case of catastrophic failure. 
@@ -35,7 +39,11 @@ class Drone(ABC):
     def arm(self) -> None: 
         ...
         
-                
+        
+    @abstractmethod
+    def offboard(self) -> None: 
+        ...
+              
     @abstractmethod
     def disarm(self) -> None: 
         ...
@@ -44,6 +52,9 @@ class Drone(ABC):
     def cooldown(self) -> None: 
         ...
         
+    @abstractmethod
+    def activate_control(self) -> None:
+        ...
 
     @abstractmethod
     def bump_and_run(self) -> None: 

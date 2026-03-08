@@ -1,6 +1,5 @@
 import argparse
 from core.orchestrator.runner import Runner
-from adapters.gazebo_px4_adapter import GazeboPx4SimAdapter
 from drones.gz_x500_mono_cam import gz_x500_mono_cam
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
