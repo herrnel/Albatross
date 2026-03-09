@@ -4,11 +4,15 @@ import time
 
 
 class Module(ABC):
+    name: str
+
     @abstractmethod
     def start(self) -> None: ...
     @abstractmethod
     def stop(self) -> None: ...
-    
+
+
+
 
 class FixedRateThread:
     def __init__(self, hz: float, name: str):

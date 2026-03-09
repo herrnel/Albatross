@@ -4,9 +4,9 @@ import threading
 import time
 
 class ControlModule(FixedRateThread):
-    def __init__(self, hz: float = 500.0):
+    def __init__(self, shared_state: SharedState, hz: float = 500.0):
         super().__init__(hz=hz, name="Control")
-        self.shared_state = shared
+        self.shared_state = shared_state
         self._last_vision = None
 
     #  This is how controller should work if we are using stepping

@@ -1,5 +1,6 @@
 import argparse
 from core.orchestrator.runner import Runner
+from core.types.module.pipeline_type import Pipeline
 from drones.gz_x500_mono_cam import gz_x500_mono_cam
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
@@ -57,7 +58,7 @@ def main():
     """
     
     drone, adapter = extract_params()
-
+    
     # Choose Modules
     modules = [
         # VisionModule(hz=80),
@@ -65,8 +66,10 @@ def main():
         ControlModule(hz=500)
     ]
 
+    pipeline = Pipeline(modules)
+
     # Create Orchestrator
-    runner = Runner(drone, adapter, modules)
+    runner = Runner(drone, adapter, pipeline)
 
     # run system
     runner.run()
