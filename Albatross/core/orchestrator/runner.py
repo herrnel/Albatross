@@ -2,11 +2,7 @@ import time
 
 from adapters.adapter_base.platform_adapter import PlatformAdapter
 from drones.drone_base.drone_base import Drone
-from core.types.telemetry.shared_state import SharedState
 from core.types.module.pipeline_type import Pipeline
-
-
-
 
 class Runner:
     """
@@ -19,39 +15,30 @@ class Runner:
         self.pipeline = pipline 
         self._running = False
 
-    def run(self, rate_hz: float = 500.0):
-        period = 1.0 / rate_hz
-        next_t = time.perf_counter()
+    def run(self, rate_hz: float = 500.0):        
+        # 1. Start up connection to Sim/Drone using adapter
+        self.drone.adapter.connect()
         
-        # 1. Start up connection using adapter
-        self.adapter.start()
-        
-        # 2. Create a shared state object that is thread safe from multiple modules reading and writing to it. 
-        # This shared object will be the drone essentially for this project. It will be the abstraction of the 
-        # Drone we care about. 
-        self.shared_state = SharedState()
         # Initial the drone which wraps the SharedState and holds a drones configuration i.e weight etc. 
         # Initialize the drone using the adapter, SharedState and modules
-        self.drone.setup(self.adapter, self.shared_state, self.pipeline)
-        t0 = time.time() # Timer for tracking Hz
-        
+        self.drone.setup(self.adapter, self.pipeline)
         
         # Seed an initial neutral command so sender can start immediately
-        self.drone.neutral_command()
+        self.drone.hover()
         
         # 3. Initialize sensor reading i.e inititializng the pump_sensor loop to start reading independently
         # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init(). 
     
-        self.drone.pump_init()
-        self.drone.send_init()
-        self.drone.print_init()
+        self.drone.pipeline.pump_init()
+        self.drone.pipeline.send_init()
+        self.drone.pipeline.print_init()
 
         try:
             
-            self.drone.pump_start()
-            self.drone.send_start()
-            self.drone.print_start()
-            
+            # Start primary threads
+            self.drone.pipeline.pump_start() # Start collecting telemetry
+            self.drone.pipeline.send_start() # Start sending commands (if available)
+            self.drone.pipeline.print_start() # Start logging flight data
             
             # Neutral commands, arming, and offboard requests may be unique to Mavlink and whould probably be moved to the adapter under one command.
             # Warmup: neutral streaming before arm/offboard
@@ -68,7 +55,7 @@ class Runner:
    
             # 4. Initialize modules for neutral streaming, this should tell the modules that we are not in racing mode
             # we need the drones properllers to probably be spinning but nothing enough for take off. Everyting except the control module.
-            self.drone.pipeline.start_processing()
+            self.drone.start_processing()
                 
                 
             # 5. Next should be the takeoff bump this should be a consistent adapter command but with different implementaions 
@@ -79,11 +66,14 @@ class Runner:
             
             # 6. Initiate Active Control at 500Hz
             print("[phase] active: 500hz controller updating command")
-            self.drone.pipeline.take_control() # This should essentailly start the control module
-                
+            self.drone.take_control() # This should essentailly start the control module
+            time.sleep(3.0)
+            
+
             # 7. Initiate cooldown to neutral 
             print("[phase] cooldown: neutral")
-            self.drone.cooldown()
+            self.drone.hover()
+            time.sleep(1.0)
             
             # 8. Requrest Disarm
             print("[cmd] DISARM")
@@ -97,14 +87,7 @@ class Runner:
             try:
                 for _ in range(10):
                     # This is giving us direct access to an adapter command to regain control. 
-                    self.drone.adapter.send_attitude_target(
-                        t0,
-                        roll=0.0,
-                        pitch=0.0,
-                        yaw_angle=0.0,
-                        yaw_rate=0.0,
-                        thrust=self.drone.hover_thrust,
-                    )
+                    self.drone.hover()
                     time.sleep(0.02)
             except Exception:
                 pass

@@ -5,7 +5,7 @@ from drones.gz_x500_mono_cam import gz_x500_mono_cam
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
 from core.policy.control_module import ControlModule
-
+from core.types.telemetry.shared_state import SharedState
 
 
 def extract_params():
@@ -65,11 +65,16 @@ def main():
         # EkfModule(hz=400),
         ControlModule(hz=500)
     ]
+    
+    # 2. Create a shared state object that is thread safe from multiple modules reading and writing to it. 
+    # This shared object will be the drone essentially for this project. It will be the abstraction of the 
+    # Drone we care about. 
+    shared_state = SharedState()
 
-    pipeline = Pipeline(modules)
+    pipeline = Pipeline(modules, adapter, shared_state)
 
-    # Create Orchestrator
-    runner = Runner(drone, adapter, pipeline)
+    # Create an orchestrator
+    runner = Runner(drone, pipeline, adapter)
 
     # run system
     runner.run()

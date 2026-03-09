@@ -1,8 +1,9 @@
 from drone_base.drone_base import Drone
 from core.types.command.action_message import Command
 from core.types.module.pipeline_type import Pipeline
+from adapters.adapter_base.platform_adapter import PlatformAdapter
 import time
-import threading
+
 
 class gz_x500_mono_cam(Drone):
     """
@@ -11,35 +12,40 @@ class gz_x500_mono_cam(Drone):
     Drone -> Modules -> SharedData -> Adapter
     """
     
-    def setup(self, adapter, shared_state, pipeline: Pipeline) -> None: 
-        self.adapter = adapter
-        self.shared_data = shared_state
-        self.pipeline = pipeline
+    def setup(self, adapter, pipeline: Pipeline) -> None: 
+        self.adapter: PlatformAdapter = adapter
+        self.pipeline: Pipeline = pipeline
         self.hover_thrust = .87
         self.takeoff_thrust = .97
-          
-    def neutral_command(self) -> None: 
-        self.shared_data.set_command(
-            Command(
-                roll=0.0,
-                pitch=0.0,
-                yaw_angle=0.0,
-                yaw_rate=0.0,
-                thrust=self.hover_thrust,
-                t=time.perf_counter(),
-            )
-        )
+    
+    def start_processing(self) -> None: 
+        self.pipeline.start_processing()
+    
+    def take_control(self) -> None:
+        self.pipeline.take_control()
     
     def arm(self) -> None: 
+        """
+        Arm the drone using an adapter. 
+        """
         self.adapter.request_arm()
 
     def offboard(self) -> None: 
+        """
+        Send a request to the simulator or controller offboard access using an adapter. 
+        """
         self.adapter.request_offboard()
                 
     def disarm(self) -> None: 
+        """
+        Disarm the drone using an adapter.
+        """
         self.adapter.request_disarm()
     
-    def cooldown(self) -> None: 
+    def hover(self) -> None: 
+        """
+        Direct command to get the drone to stop and hover using an adapter.
+        """
         self.adapter.set_command(
             Command(
                 roll=0.0,
@@ -52,7 +58,10 @@ class gz_x500_mono_cam(Drone):
         )
 
     def bump_and_run(self) -> None: 
-        self.shared_data.set_command(
+        """
+        Direct command to the drone to take off and fly forward using an adapter. 
+        """
+        self.pipeline.shared_data.set_command(
             Command(
                 roll=0.0,
                 pitch=0.0,
@@ -63,7 +72,5 @@ class gz_x500_mono_cam(Drone):
             )
         )
         
-    def activate_control(self) -> None:
-
     
     

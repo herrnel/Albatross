@@ -1,5 +1,7 @@
 from abc import abstractmethod, ABC
 import threading
+from threading import Thread, Event
+from core.types.telemetry.shared_state import SharedState
 import time
 
 
@@ -8,10 +10,12 @@ class Module(ABC):
 
     @abstractmethod
     def start(self) -> None: ...
+    
+    @abstractmethod
+    def create_thread(shared_state: SharedState, stop_evt: Event) -> Thread: ...
+    
     @abstractmethod
     def stop(self) -> None: ...
-
-
 
 
 class FixedRateThread:

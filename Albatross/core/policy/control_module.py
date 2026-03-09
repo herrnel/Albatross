@@ -1,12 +1,15 @@
 from core.types.module.module_type import FixedRateThread
 from core.types.telemetry.shared_state import SharedState
 import threading
+from threading import Thread, Event
 import time
+from core.utilities.utilities import monotonic_sleep_until
 
 class ControlModule(FixedRateThread):
     def __init__(self, shared_state: SharedState, hz: float = 500.0):
         super().__init__(hz=hz, name="Control")
         self.shared_state = shared_state
+        self.name = "control"
         self._last_vision = None
 
     #  This is how controller should work if we are using stepping
@@ -38,7 +41,11 @@ class ControlModule(FixedRateThread):
     #         t=time.perf_counter(), roll=roll, pitch=pitch, yaw_rate=yaw_rate, throttle=throttle
     # ))
     
-    
+    def create_thread(self, shared_state: SharedState, stop_evt: Event) -> Thread: 
+        """
+        How a thread is created for a module should be unique to that module. 
+        """
+        return threading.Thread(target=self.control_loop, args=(shared_state, stop_evt), daemon=True)
         
     def control_loop(shared: SharedState, stop_evt: threading.Event, control_hz: float = 500.0):
         dt = 1.0 / control_hz
