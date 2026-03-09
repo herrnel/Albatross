@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional
 
 @dataclass(frozen=True)
-class ImuMsg:
+class ImuSample:
     t: float                 # seconds (monotonic)
     accel: np.ndarray        # (3,) m/s^2
     gyro: np.ndarray         # (3,) rad/s
@@ -15,7 +15,7 @@ class AttitudeData:
     # rollspeed: float     # Don't know if we will have this yet. 
     # pitchspeed: float
     # yawspeed: float
-    imu: Optional[ImuMsg]  # Contains IMU data. 
+    imu: Optional[ImuSample]  # Contains IMU data. 
 
 @dataclass(frozen=True)
 class FrameMsg:

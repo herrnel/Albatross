@@ -2,10 +2,12 @@ import argparse
 from core.orchestrator.runner import Runner
 from core.types.module.pipeline_type import Pipeline
 from drones.gz_x500_mono_cam import gz_x500_mono_cam
+from adapters.gazebo_px4_adapter.gazebo_px4_sim_adapter import GazeboPx4MavlinkAdapter
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
 from core.policy.control_module import ControlModule
 from core.types.telemetry.shared_state import SharedState
+
 
 
 def extract_params():
@@ -46,7 +48,7 @@ def extract_params():
     
     match args.adapter:
         case "GazeboPx4":
-            adapter = GazeboPx4SimAdapter()
+            adapter = GazeboPx4MavlinkAdapter()
         case _:
             print("")
             

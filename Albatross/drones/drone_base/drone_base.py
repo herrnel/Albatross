@@ -24,6 +24,10 @@ class Drone(ABC):
         self.stop_evt = threading.Event() 
         
     @abstractmethod
+    def setup(self, adapter, pipeline: Pipeline) -> None: 
+        ...
+        
+    @abstractmethod
     def start_processing(self) -> None: 
         ...
         

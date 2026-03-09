@@ -5,7 +5,7 @@ import threading
 from collections import deque
 
 from core.types.command.action_message import Command
-from core.types.telemetry.telemetry_types import LocalPositionNED, AttitudeData
+from core.types.telemetry.telemetry_types import LocalPositionNED, AttitudeData, ImuSample
 
 @dataclass
 class SharedState:

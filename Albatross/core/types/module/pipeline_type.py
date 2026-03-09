@@ -47,7 +47,7 @@ class Pipeline:
                 
     def command_loop(
         self,
-        send_hz: float = 50.0,
+        send_hz: float = 50.0,  # Use a higher rate to avoid any “offboard loss” sensitivity
     ):
         """
         Dedicated setpoint stream loop.

@@ -8,6 +8,34 @@ class PlatformAdapter(ABC):
     SimulatorAdapter and RealDroneAdapter both implement this.
     They are responsible ONLY for IO with the platform.
     """
+    
+    @abstractmethod
+    def connect(self) -> None: ...
+    
+    @abstractmethod
+    def stream_for(self, t0: float,  seconds: float, roll: float, pitch: float, thrust: float, yaw_rate: float) -> None: ...
+    
+    @abstractmethod
+    def send_attitude_target(
+        self,
+        t0: float,
+        roll: float,
+        pitch: float,
+        yaw_angle: float,
+        yaw_rate: float,
+        thrust: float,
+    ) -> None:  ...
+    
+    @abstractmethod
+    def request_arm(self) -> None: ...
+    
+    
+    @abstractmethod
+    def request_offboard() -> None: ...
+    
+    @abstractmethod
+    def request_disarm() -> None: ...
+
 
     @abstractmethod
     def now(self) -> float:

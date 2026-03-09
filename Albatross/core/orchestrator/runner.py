@@ -15,7 +15,7 @@ class Runner:
         self.pipeline = pipline 
         self._running = False
 
-    def run(self, rate_hz: float = 500.0):        
+    def run(self):        
         # 1. Start up connection to Sim/Drone using adapter
         self.drone.adapter.connect()
         
@@ -37,7 +37,7 @@ class Runner:
             
             # Start primary threads
             self.drone.pipeline.pump_start() # Start collecting telemetry
-            self.drone.pipeline.send_start() # Start sending commands (if available)
+            self.drone.pipeline.send_start() # Start streaming commands (if available)
             self.drone.pipeline.print_start() # Start logging flight data
             
             # Neutral commands, arming, and offboard requests may be unique to Mavlink and whould probably be moved to the adapter under one command.
@@ -92,26 +92,4 @@ class Runner:
             except Exception:
                 pass
 
-            
-            
-
-        # self._running = True
-        # try:
-        #     while self._running:
-        #         # 1) ingest and update bus
-        #         self.adapter.pump_sensors(self.bus)
-
-        #         # 2) apply latest action (if any)
-        #         act = self.bus.action_latest.get()
-        #         if act is not None:
-        #             self.adapter.apply_action(act)
-
-        #         # fixed-rate scheduling
-        #         now = time.perf_counter()
-        #         if now < next_t:
-        #             time.sleep(next_t - now)
-        #         next_t += period
-        # finally:
-        #     for m in self.modules:
-        #         m.stop()
-        #     self.adapter.stop()
+        

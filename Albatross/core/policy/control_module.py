@@ -1,16 +1,20 @@
-from core.types.module.module_type import FixedRateThread
-from core.types.telemetry.shared_state import SharedState
+import time
+import math
 import threading
 from threading import Thread, Event
-import time
 from core.utilities.utilities import monotonic_sleep_until
+from core.types.module.module_type import FixedRateThread
+from core.types.telemetry.shared_state import SharedState
+from core.types.command.action_message import Command
 
 class ControlModule(FixedRateThread):
-    def __init__(self, shared_state: SharedState, hz: float = 500.0):
+    def __init__(self, shared_state: SharedState, hz: float = 500.0, mode = "default"):
         super().__init__(hz=hz, name="Control")
         self.shared_state = shared_state
         self.name = "control"
         self._last_vision = None
+        self.mode = mode
+        
 
     #  This is how controller should work if we are using stepping
     # def step(self):
@@ -47,7 +51,7 @@ class ControlModule(FixedRateThread):
         """
         return threading.Thread(target=self.control_loop, args=(shared_state, stop_evt), daemon=True)
         
-    def control_loop(shared: SharedState, stop_evt: threading.Event, control_hz: float = 500.0):
+    def control_loop(self, shared_state: SharedState, stop_evt: threading.Event, control_hz: float = 500.0):
         dt = 1.0 / control_hz
         next_t = time.perf_counter()
 
@@ -57,7 +61,8 @@ class ControlModule(FixedRateThread):
         pitch_forward = math.radians(-10.0)
 
         while not stop_evt.is_set():
-            if mode == "scripted":
+            if self.mode == "scripted":
+                
                 cmd = Command(
                     roll=0.0,
                     pitch=pitch_forward,
@@ -66,8 +71,8 @@ class ControlModule(FixedRateThread):
                     thrust=hover_thrust,
                     t=time.perf_counter(),
                 )
-            else:
-                # Placeholder for future control logic
+            else: 
+                # TODO Placeholder for future control logic 
                 cmd = Command(
                     roll=0.0,
                     pitch=0.0,
@@ -77,7 +82,7 @@ class ControlModule(FixedRateThread):
                     t=time.perf_counter(),
                 )
 
-            shared.set_command(cmd)
+            shared_state.set_command(cmd)
 
             next_t += dt
             monotonic_sleep_until(next_t)

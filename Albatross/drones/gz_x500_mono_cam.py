@@ -15,8 +15,9 @@ class gz_x500_mono_cam(Drone):
     def setup(self, adapter, pipeline: Pipeline) -> None: 
         self.adapter: PlatformAdapter = adapter
         self.pipeline: Pipeline = pipeline
-        self.hover_thrust = .87
-        self.takeoff_thrust = .97
+        # Thrust tuning
+        self.hover_thrust = 0.74
+        self.takeoff_thrust = .87
     
     def start_processing(self) -> None: 
         self.pipeline.start_processing()
@@ -46,7 +47,7 @@ class gz_x500_mono_cam(Drone):
         """
         Direct command to get the drone to stop and hover using an adapter.
         """
-        self.adapter.set_command(
+        self.pipeline.shared_state.set_command(
             Command(
                 roll=0.0,
                 pitch=0.0,
@@ -61,7 +62,7 @@ class gz_x500_mono_cam(Drone):
         """
         Direct command to the drone to take off and fly forward using an adapter. 
         """
-        self.pipeline.shared_data.set_command(
+        self.pipeline.shared_state.set_command(
             Command(
                 roll=0.0,
                 pitch=0.0,
