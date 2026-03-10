@@ -1,23 +1,26 @@
-from drone_base.drone_base import Drone
-from core.types.command.action_message import Command
-from core.types.module.pipeline_type import Pipeline
-from adapters.adapter_base.platform_adapter import PlatformAdapter
 import time
+from drones.drone_base.drone_base import Drone
+from core import Pipeline
+from adapters import PlatformAdapter
+from core.types import Command
 
 
 class gz_x500_mono_cam(Drone):
     """
-    Every drone may contain its own information. This class will allow us to have specific
-    Information about this drone and expose the core functionality to the Runner. 
-    Drone -> Modules -> SharedData -> Adapter
+    Every drone may contain its own information. This class will allow us to store specific
+    information about each drone and expose the core drone functionality to any orchestrator. 
+    Drones should primarly interact with Adapters, Pipelines, and ShareState. 
     """
     
-    def setup(self, adapter, pipeline: Pipeline) -> None: 
+    def setup(self, adapter: PlatformAdapter, pipeline: Pipeline) -> None: 
         self.adapter: PlatformAdapter = adapter
         self.pipeline: Pipeline = pipeline
         # Thrust tuning
         self.hover_thrust = 0.74
         self.takeoff_thrust = .87
+           
+        
+    # Core functionality
     
     def start_processing(self) -> None: 
         self.pipeline.start_processing()

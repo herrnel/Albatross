@@ -1,9 +1,9 @@
 import time
 from typing import Optional
 from pymavlink import mavutil
-from core.types.command.action_message import Command
-from adapter_base.platform_adapter import PlatformAdapter
-from core.utilities.utilities import quat_from_euler
+from core.types import Command, SharedState, ImuSample, AttitudeData, LocalPositionNED
+from adapters import PlatformAdapter
+from core.utilities import quat_from_euler
 
 class GazeboPx4MavlinkAdapter(PlatformAdapter):
     """
@@ -143,6 +143,61 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         )
         print("[cmd] requested DISARM")
     
+    def pump_sensors(self, shared_state: SharedState, max_msgs: int = 200) -> int:
+        """
+        Drain all currently available MAVLink messages without blocking.
+        """
+        count = 0
+        while count < max_msgs:
+            msg = self.mav_connection.recv_match(blocking=False)
+            if msg is None:
+                break
+
+            mtype = msg.get_type()
+
+            if mtype == "HIGHRES_IMU":
+                t = getattr(msg, "time_usec", 0) * 1e-6 if getattr(msg, "time_usec", 0) else time.perf_counter()
+                shared_state.push_imu(
+                    ImuSample(
+                        t=t,
+                        accel=np.array([msg.xacc, msg.yacc, msg.zacc], dtype=np.float32),
+                        gyro=np.array([msg.xgyro, msg.ygyro, msg.zgyro], dtype=np.float32),
+                    )
+                )
+
+            elif mtype == "LOCAL_POSITION_NED":
+                t = getattr(msg, "time_boot_ms", 0) * 1e-3 if getattr(msg, "time_boot_ms", 0) else time.perf_counter()
+                shared_state.set_local_pos(
+                    LocalPositionNED(
+                        t=t,
+                        x=float(msg.x),
+                        y=float(msg.y),
+                        z=float(msg.z),
+                    )
+                )
+
+            elif mtype == "ATTITUDE":
+                t = getattr(msg, "time_boot_ms", 0) * 1e-3 if getattr(msg, "time_boot_ms", 0) else time.perf_counter()
+                shared_state.set_attitude(
+                    AttitudeData(
+                        t=t,
+                        roll=float(msg.roll),
+                        pitch=float(msg.pitch),
+                        yaw=float(msg.yaw),
+                        rollspeed=float(msg.rollspeed),
+                        pitchspeed=float(msg.pitchspeed),
+                        yawspeed=float(msg.yawspeed),
+                    )
+                )
+
+            elif mtype == "HEARTBEAT":
+                shared_state.set_heartbeat(msg)
+
+            count += 1
+
+        return count
+    
+    # --- These might be removed later --- 
 
     def start(self) -> None:
         print("[info] connecting:", self.endpoint)
@@ -176,14 +231,14 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         # Prefer monotonic clock for scheduling.
         return time.perf_counter()
 
-    def apply_action(self, action: ActionMsg) -> None:
+    def apply_action(self, action: Command) -> None:
         if not self._started or self.mav is None or self._t0_wall is None:
             return
 
         # Save for potential resend behavior
         self._last_action = action
 
-        send_attitude_target(
+        self.send_attitude_target(
             self.mav,
             self._t0_wall,
             roll=action.roll,
@@ -193,69 +248,6 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
             thrust=action.thrust,
         )
 
-    def pump_sensors(self, bus: SimpleBus) -> None:
-        """
-        Drain all currently available MAVLink messages (non-blocking)
-        and push normalized messages to your bus.
-
-        Call this frequently (e.g., Runner IO loop at 200–500 Hz).
-        """
-        if not self._started or self.mav is None:
-            return
-
-        # Drain a bounded number per call to avoid infinite loops if flooded.
-        # Increase if you expect high telemetry volume.
-        max_msgs = 200
-        drained = 0
-
-        while drained < max_msgs:
-            msg = self.mav.recv_match(blocking=False)
-            if msg is None:
-                break
-
-            mtype = msg.get_type()
-            t = self._msg_time_seconds(msg)
-
-            if mtype == "HIGHRES_IMU":
-                # Units:
-                # xacc/yacc/zacc: m/s^2
-                # xgyro/ygyro/zgyro: rad/s
-                imu = ImuMsg(
-                    t=t,
-                    accel=np.array([msg.xacc, msg.yacc, msg.zacc], dtype=np.float32),
-                    gyro=np.array([msg.xgyro, msg.ygyro, msg.zgyro], dtype=np.float32),
-                )
-                bus.push_imu(imu)
-
-            elif mtype == "ATTITUDE":
-                att = AttitudeMsg(
-                    t=t,
-                    roll=float(msg.roll),
-                    pitch=float(msg.pitch),
-                    yaw=float(msg.yaw),
-                    rollspeed=float(msg.rollspeed),
-                    pitchspeed=float(msg.pitchspeed),
-                    yawspeed=float(msg.yawspeed),
-                )
-                bus.set_attitude(att)
-
-            elif mtype == "LOCAL_POSITION_NED":
-                lp = LocalPosMsg(
-                    t=t,
-                    x=float(msg.x),
-                    y=float(msg.y),
-                    z=float(msg.z),
-                )
-                bus.set_local_pos(lp)
-
-            # Add more telemetry parsing here as you need:
-            # - "ODOMETRY"
-            # - "ATTITUDE_QUATERNION"
-            # - "RAW_IMU"
-            # - motor outputs / rpm (if available)
-            # - etc.
-
-            drained += 1
 
     # -------- helpers --------
 

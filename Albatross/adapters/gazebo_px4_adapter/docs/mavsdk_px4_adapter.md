@@ -1,67 +1,5 @@
 # Gazebo + Mav Simulator Setup
-
-## Streaming Telemetry & Messages
-
-#### Control stream (most important)
-
-- **50–100 Hz** setpoints (PX4 requires >2 Hz, but racing needs faster for control)
-    
-- Use _one_ setpoint type consistently per run:
-    
-    - `SET_POSITION_TARGET_LOCAL_NED` (velocity mode) for simple racing baseline
-        
-    - or `SET_ATTITUDE_TARGET` (attitude+thrust) for more direct control
-        
-    - don’t mix unless you’re doing the keepalive trick on purpose
-        
-
-#### Telemetry stream
-
-- 30–100 Hz (depends what you subscribe to / what PX4 is sending)
-    
-- You should treat telemetry as “latest sample wins”:
-    
-    - a background receiver updates `latest_state`
-        
-    - the controller reads `latest_state` each tick
-        
-
-#### Camera stream
-
-- 30–60 FPS typical
-    
-- Same approach: background thread decodes frames, stores latest
-
-## Therefore our architecture has 2–3 loops
-
-#### 1) Rx loop (telemetry)
-
-- blocks on `recv_match()`
-    
-- updates thread-safe `latest_telemetry`
-    
-
-#### 2) Camera loop
-
-- decodes frames
-    
-- updates `latest_frame`
-    
-
-#### 3) Control loop (fixed Hz)
-
-- reads latest inputs (frame + telemetry)
-    
-- runs policy
-    
-- sends setpoint
-    
-- sleeps to maintain rate
-    
-
-The control loop should be the only thing that “owns” timing.
-
-# Our Setup
+# My Setup
 
 ### Vehicle Model
 
@@ -103,12 +41,24 @@ WARN  [health_and_arming_checks] Preflight Fail: No connection to the GCS
 WARN  [commander] Arming denied: Resolve system health failures first
 ```
 
+**(Terminal 1)**
 
+If you have ran make previously run (Optional):
 
-**(Terminal 1)** \
+```bash
+make distclean
+```
+
+Sometimes closing Px4 and Gazbeo will leave some background processes running so the following series of commands will help find and kill them. 
+
+```bash
+ps aux | grep -E "gz sim|gzserver|ign gazebo" | grep -v grep
+kill -9 <pid> <pid>
+```
+
 Run the simulation using:
 
-```
+```bash
 make px4_sitl gz_x500_mono_cam
 ```
 
@@ -119,7 +69,7 @@ Fan-out RTP packets to two local ports using:
 - Python listens on 5601
 - gst-launch viewer listens on 5602
 
-```
+```bash
 gst-launch-1.0 -v \
   udpsrc port=5600 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
   ! tee name=t \
@@ -130,11 +80,15 @@ gst-launch-1.0 -v \
 **(Terminal 3)** \
 View the mono-camera feed using:
 
-```
+```bash
 gst-launch-1.0 -v \
   udpsrc port=5602 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
   ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
 ```
+
+**(Example View)**
+
+![Example View](Screenshot%202026-03-09%20at%208.46.40 PM.png)
 
 
 # Simulation Observations

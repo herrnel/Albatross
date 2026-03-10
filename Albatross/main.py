@@ -1,27 +1,33 @@
 import argparse
-from core.orchestrator.runner import Runner
-from core.types.module.pipeline_type import Pipeline
-from drones.gz_x500_mono_cam import gz_x500_mono_cam
-from adapters.gazebo_px4_adapter.gazebo_px4_sim_adapter import GazeboPx4MavlinkAdapter
+from orchestrators import Runner
+from drones import gz_x500_mono_cam
+from adapters import GazeboPx4MavlinkAdapter
+from core import Pipeline, ControlModule
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
-from core.policy.control_module import ControlModule
-from core.types.telemetry.shared_state import SharedState
 
+from core.types import SharedState
 
 
 def extract_params():
-    parser = argparse.ArgumentParser(description="calculate X to the power of Y")
+    parser = argparse.ArgumentParser(description="Run Albatross Autonomy Stack")
     parser.add_argument("drone", type=str, 
-                        help="Provide a real drone or sim/real drone name. This will help adjust the automation stack to the drones characteristics", 
+                        help="Provide a real drone or sim/real drone name. This will help the automation stack adapt to the drone's characteristics.", 
                         choices=["gz_x500_mono_cam"])
     parser.add_argument("adapter",
                         type=str, 
                         help="Provide an adapter which could be a simulator and/or communication protocol", 
                         choices=[
-                            # "AirSim", # TODO
                             "GazeboPx4", 
+                            # "AirSim", # TODO
                             # "Issac" # TODO
+                            ])
+    parser.add_argument("runner",
+                        type=str, 
+                        help="Provide an adapter which could be a simulator and/or communication protocol", 
+                        choices=[
+                                "Runner",
+                                # "xyz_Trainer"
                             ])
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", 
@@ -51,34 +57,44 @@ def extract_params():
             adapter = GazeboPx4MavlinkAdapter()
         case _:
             print("")
-            
-    return (drone, adapter)
+    
+    match args.runner:
+        case "Runner":
+            runner = Runner()
+        case _:
+            print("")
+    
+    return (drone, adapter, runner)
 
 def main():
     """
     This should be running as fast has computation allows. 
     """
     
-    drone, adapter = extract_params()
+    drone, adapter, runner = extract_params()
     
-    # Choose Modules
-    modules = [
-        # VisionModule(hz=80),
-        # EkfModule(hz=400),
-        ControlModule(hz=500)
-    ]
-    
-    # 2. Create a shared state object that is thread safe from multiple modules reading and writing to it. 
+    # Create a shared state object that is thread safe from multiple modules reading and writing to it. 
     # This shared object will be the drone essentially for this project. It will be the abstraction of the 
     # Drone we care about. 
     shared_state = SharedState()
+    
+    # Choose Modules
+    modules = [
+        # VisionModule(shared_state, hz=80),
+        # EkfModule(shared_state, hz=400),
+        ControlModule(shared_state, hz=500)
+    ]
+    
 
+    # Initialize the module manager 
     pipeline = Pipeline(modules, adapter, shared_state)
+    
+    # Setup drone 
+    drone.setup(adapter, pipeline)
 
-    # Create an orchestrator
-    runner = Runner(drone, pipeline, adapter)
+    # set up the flight orchestrator
+    runner.setup(drone, pipeline, adapter)
 
-    # run system
     runner.run()
 
 

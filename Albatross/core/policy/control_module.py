@@ -5,7 +5,7 @@ from threading import Thread, Event
 from core.utilities.utilities import monotonic_sleep_until
 from core.types.module.module_type import FixedRateThread
 from core.types.telemetry.shared_state import SharedState
-from core.types.command.action_message import Command
+from core.types.command.command_type import Command
 
 class ControlModule(FixedRateThread):
     def __init__(self, shared_state: SharedState, hz: float = 500.0, mode = "default"):
@@ -45,13 +45,13 @@ class ControlModule(FixedRateThread):
     #         t=time.perf_counter(), roll=roll, pitch=pitch, yaw_rate=yaw_rate, throttle=throttle
     # ))
     
-    def create_thread(self, shared_state: SharedState, stop_evt: Event) -> Thread: 
+    def create_thread(self, stop_evt: Event) -> Thread: 
         """
         How a thread is created for a module should be unique to that module. 
         """
-        return threading.Thread(target=self.control_loop, args=(shared_state, stop_evt), daemon=True)
+        return threading.Thread(target=self.control_loop, args=(self.shared_state, stop_evt), daemon=True)
         
-    def control_loop(self, shared_state: SharedState, stop_evt: threading.Event, control_hz: float = 500.0):
+    def control_loop(self, stop_evt: threading.Event, control_hz: float = 500.0):
         dt = 1.0 / control_hz
         next_t = time.perf_counter()
 
@@ -82,7 +82,7 @@ class ControlModule(FixedRateThread):
                     t=time.perf_counter(),
                 )
 
-            shared_state.set_command(cmd)
+            self.shared_state.set_command(cmd)
 
             next_t += dt
             monotonic_sleep_until(next_t)

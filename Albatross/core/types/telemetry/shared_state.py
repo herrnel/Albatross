@@ -1,10 +1,9 @@
-from dataclasses import dataclass, field
-import numpy as np
-from typing import Optional
 import threading
+from dataclasses import dataclass, field
+from typing import Optional
 from collections import deque
 
-from core.types.command.action_message import Command
+from core.types.command.command_type import Command
 from core.types.telemetry.telemetry_types import LocalPositionNED, AttitudeData, ImuSample
 
 @dataclass

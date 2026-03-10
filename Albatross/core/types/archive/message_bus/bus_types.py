@@ -4,6 +4,8 @@ from typing import Generic, TypeVar, Optional, List
 
 T = TypeVar("T")
 
+# This file has been conceptually replaced by the sharedstate module. 
+
 class LatestValue(Generic[T]):
     def __init__(self):
         self._lock = Lock()

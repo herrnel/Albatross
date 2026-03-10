@@ -1,15 +1,15 @@
 import time
-
-from adapters.adapter_base.platform_adapter import PlatformAdapter
-from drones.drone_base.drone_base import Drone
-from core.types.module.pipeline_type import Pipeline
+from core import Pipeline
+from adapters import PlatformAdapter
+from drones import Drone
 
 class Runner:
     """
     Here make an attempt to have the runner loop run at 500hz but its not necessary. 
     This should 
     """
-    def __init__(self, drone: Drone,  adapter: PlatformAdapter, pipline: Pipeline):
+        
+    def setup(self, drone: Drone,  adapter: PlatformAdapter, pipline: Pipeline) -> None:
         self.drone = drone
         self.adapter = adapter
         self.pipeline = pipline 

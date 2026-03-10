@@ -1,8 +1,8 @@
-from core.types.module.module_type import Module
-from adapters.adapter_base.platform_adapter import PlatformAdapter
-from core.types.telemetry.shared_state import SharedState
-import threading
 import time
+import threading
+from adapters import PlatformAdapter
+
+from core.types import Module, SharedState
 
 
 class Pipeline:

@@ -1,8 +1,8 @@
-from abc import abstractmethod, ABC
-import threading
-from threading import Thread, Event
-from core.types.telemetry.shared_state import SharedState
 import time
+import threading
+from abc import abstractmethod, ABC
+from threading import Thread, Event
+from core.types import SharedState
 
 
 class Module(ABC):

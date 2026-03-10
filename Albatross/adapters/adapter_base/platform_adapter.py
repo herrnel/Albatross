@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
-from core.types.message_bus.bus_types import Bus
-from core.types.command.action_message import ActionMsg
+from core.types import Command, SharedState
 
 class PlatformAdapter(ABC):
     """
@@ -54,7 +53,7 @@ class PlatformAdapter(ABC):
 
     @abstractmethod
     # This works for both push and step api implementations
-    def pump_sensors(self, bus: Bus) -> None:
+    def pump_sensors(self, shared_state: SharedState, max_msgs: int = 200) -> int:
         """
         Non-blocking (or short-blocking) call that reads any available sensor data
         and pushes ImuMsg/FrameMsg/etc. into the bus.
@@ -62,6 +61,6 @@ class PlatformAdapter(ABC):
         ...
 
     @abstractmethod
-    def apply_action(self, action: ActionMsg) -> None:
+    def apply_action(self, action: Command) -> None:
         """Send action to the platform (attitude + throttle)."""
         ...
