@@ -49,30 +49,10 @@ class PlatformAdapter(ABC):
 
 
     @abstractmethod
-    def now(self) -> float:
-        """Monotonic time in seconds."""
-        ...
-
-    @abstractmethod
-    def start(self) -> None:
-        """Initialize connections/resources."""
-        ...
-
-    @abstractmethod
-    def stop(self) -> None:
-        """Clean up resources."""
-        ...
-
-    @abstractmethod
     # This works for both push and step api implementations
     def pump_sensors(self, max_msgs: int = 200) -> int:
         """
         Non-blocking (or short-blocking) call that reads any available sensor data
         and pushes ImuMsg/FrameMsg/etc. into the bus.
         """
-        ...
-
-    @abstractmethod
-    def apply_action(self, action: Command) -> None:
-        """Send action to the platform (attitude + throttle)."""
         ...

@@ -19,10 +19,10 @@ class Runner:
         # Start up connection to Sim/Drone using adapter
         self.drone.adapter.connect()
         
-        # Seed an initial neutral command so sender can start immediately
+        # Seed an initial neutral command so command sender can start immediately
         self.drone.hover()
         
-        # Initialize sensor reading i.e inititializng the pump_sensor loop to start reading independently
+        # Initialize sensor reading, message sending, and heartbeat logging. 
         # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init(). 
         self.drone.pipeline.pump_init()
         self.drone.pipeline.send_init()

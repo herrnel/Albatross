@@ -70,19 +70,17 @@ def main():
     """
     This should be running as fast has computation allows. 
     """
-    
+    # Get flight configuration
     drone, adapter, runner = extract_params()
     
     # Create a shared state object that is thread safe from multiple modules reading and writing to it. 
-    # This shared object will be the drone essentially for this project. It will be the abstraction of the 
-    # Drone we care about. 
     shared_state = SharedState()
     
     # Choose Modules
     modules = [
         # VisionModule(shared_state, hz=80),
         # EkfModule(shared_state, hz=400),
-        ControlModule(shared_state, hz=500)
+        ControlModule(shared_state, hz=500, mode="scripted")
     ]
     
     # Setup adapter
@@ -94,7 +92,7 @@ def main():
     # Setup drone 
     drone.setup(adapter, pipeline)
 
-    # set up the flight orchestrator
+    # Setup the flight orchestrator
     runner.setup(drone, adapter, pipeline)
 
     runner.run()

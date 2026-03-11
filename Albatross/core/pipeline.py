@@ -73,6 +73,7 @@ class Pipeline:
                 thrust=cmd.thrust,
             )
 
+            # Print out a hearbeat and get the cmd being currently streamed. 
             now_wall = time.time()
             if now_wall - last_print > 1.0:
                 hb = self.shared_state.get_heartbeat()
