@@ -85,7 +85,9 @@ def main():
         ControlModule(shared_state, hz=500)
     ]
     
-
+    # Setup adapter
+    adapter.setup(shared_state)
+    
     # Initialize the module manager 
     pipeline = Pipeline(modules, adapter, shared_state)
     
@@ -93,7 +95,7 @@ def main():
     drone.setup(adapter, pipeline)
 
     # set up the flight orchestrator
-    runner.setup(drone, pipeline, adapter)
+    runner.setup(drone, adapter, pipeline)
 
     runner.run()
 

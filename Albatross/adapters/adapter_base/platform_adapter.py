@@ -7,7 +7,16 @@ class PlatformAdapter(ABC):
     SimulatorAdapter and RealDroneAdapter both implement this.
     They are responsible ONLY for IO with the platform.
     """
-    
+    @abstractmethod
+    def setup(
+        self,
+        shared_state: SharedState,
+        endpoint: str = "udpin:0.0.0.0:14540",
+        heartbeat_timeout: float = 10.0,
+        default_yaw_angle: float = 0.0, 
+        ) -> None: 
+        ...
+        
     @abstractmethod
     def connect(self) -> None: ...
     
@@ -25,15 +34,18 @@ class PlatformAdapter(ABC):
         thrust: float,
     ) -> None:  ...
     
+    
+    @abstractmethod
+    def is_armed_from_heartbeat(self, hb) -> bool: ...
+    
     @abstractmethod
     def request_arm(self) -> None: ...
     
+    @abstractmethod
+    def request_offboard(self) -> None: ...
     
     @abstractmethod
-    def request_offboard() -> None: ...
-    
-    @abstractmethod
-    def request_disarm() -> None: ...
+    def request_disarm(self) -> None: ...
 
 
     @abstractmethod
@@ -53,7 +65,7 @@ class PlatformAdapter(ABC):
 
     @abstractmethod
     # This works for both push and step api implementations
-    def pump_sensors(self, shared_state: SharedState, max_msgs: int = 200) -> int:
+    def pump_sensors(self, max_msgs: int = 200) -> int:
         """
         Non-blocking (or short-blocking) call that reads any available sensor data
         and pushes ImuMsg/FrameMsg/etc. into the bus.

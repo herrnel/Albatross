@@ -7,12 +7,15 @@ from core.types import SharedState
 
 class Module(ABC):
     name: str
+    
+    @abstractmethod
+    def __init__(self, shared_state: SharedState): ...
 
     @abstractmethod
     def start(self) -> None: ...
     
     @abstractmethod
-    def create_thread(shared_state: SharedState, stop_evt: Event) -> Thread: ...
+    def create_thread(self, stop_evt: Event) -> Thread: ...
     
     @abstractmethod
     def stop(self) -> None: ...

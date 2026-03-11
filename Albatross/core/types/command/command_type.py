@@ -7,4 +7,5 @@ class Command:
     roll: float = 0.0          # rad or normalized (define once)
     pitch: float = 0.0         # rad or normalized
     yaw_rate: float = 0.0      # rad/s or normalized
-    throttle: float = 0.0      # 0..1
+    yaw_angle: float = 0.0      # rad/s or normalized (This will probably not be used but its here for now)
+    thrust: float = 0.0      # 0..1

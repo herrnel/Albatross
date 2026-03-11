@@ -3,10 +3,6 @@ from core.types.telemetry.shared_state import SharedState
 from adapters.adapter_base.platform_adapter import PlatformAdapter
 from core.pipeline import Pipeline
 
-import threading
-
-
-
 class Drone(ABC):
     """
     Drone parent class. Defines common fields and methods that all drones should have. 
@@ -19,9 +15,10 @@ class Drone(ABC):
     hover_thrust: int
     takeoff_thrust: int
     
-    def __init__(self):
-        # This is used by th runner to stop all loops in the case of catastrophic failure. 
-        self.stop_evt = threading.Event() 
+    
+    @abstractmethod
+    def setup(self, adapter: PlatformAdapter, pipeline: Pipeline) -> None: 
+        ...
         
     @abstractmethod
     def setup(self, adapter, pipeline: Pipeline) -> None: 

@@ -1,9 +1,11 @@
 import time
+import numpy as np
 from typing import Optional
 from pymavlink import mavutil
 from core.types import Command, SharedState, ImuSample, AttitudeData, LocalPositionNED
 from adapters import PlatformAdapter
 from core.utilities import quat_from_euler
+
 
 class GazeboPx4MavlinkAdapter(PlatformAdapter):
     """
@@ -14,12 +16,14 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
     This is NOT "step-based". Telemetry arrives continuously; pump_sensors flushes it.
     """
 
-    def __init__(
+    def setup(
         self,
+        shared_state: SharedState,
         endpoint: str = "udpin:0.0.0.0:14540",
         heartbeat_timeout: float = 10.0,
         default_yaw_angle: float = 0.0, 
     ):
+        self.shared_state = shared_state
         self.endpoint = endpoint
         self.heartbeat_timeout = heartbeat_timeout
         self.default_yaw_angle = default_yaw_angle # This may never change since we have the yaw_rate to use. 
@@ -30,17 +34,16 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
 
         # last command (optional: resend if control loop pauses)
         self._last_action: Optional[Command] = None
+        
 
     def connect(self) -> None:
-        endpoint = "udpin:0.0.0.0:14540"
-
-        print("[info] connecting:", endpoint)
-        mav_connection = mavutil.mavlink_connection(endpoint)
+        print("[info] connecting:", self.endpoint)
+        self.mav_connection = mavutil.mavlink_connection(self.endpoint)
         
-        hb = mav_connection.wait_heartbeat(timeout=10)
+        hb = self.mav_connection.wait_heartbeat(timeout=10)
         if hb is None:
             raise RuntimeError("No heartbeat received. Wrong port or PX4 not running?")
-        print("[info] heartbeat OK from sysid/compid:", mav_connection.target_system, mav_connection.target_component)
+        print("[info] heartbeat OK from sysid/compid:", self.mav_connection.target_system, self.mav_connection.target_component)
     
     # This essentially what the control loop in the pipeline class does FYI. 
     def stream_for(self, t0: float,  seconds: float, roll: float, pitch: float, thrust: float, yaw_rate: float):
@@ -114,10 +117,10 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         return (hb.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED) != 0
     
     
-    def request_arm(self, mav: mavutil.mavfile) -> None:
-        mav.mav.command_long_send(
-            mav.target_system,
-            mav.target_component,
+    def request_arm(self) -> None:
+        self.mav_connection.mav.command_long_send(
+            self.mav_connection.target_system,
+            self.mav_connection.target_component,
             mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
             0,
             1, 0, 0, 0, 0, 0, 0
@@ -125,25 +128,25 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         print("[cmd] requested ARM")
         
         
-    def request_offboard(mav: mavutil.mavfile) -> None:
+    def request_offboard(self) -> None:
         try:
-            mav.set_mode("OFFBOARD")
-            print("[cmd] requested OFFBOARD")
+            self.mav_connection.set_mode("OFFBOARD")
+            print("[cmd] requested OFFBOARD SUCCESSFUL")
         except Exception as e:
             print("[cmd] OFFBOARD request failed:", e)
             
             
-    def request_disarm(mav: mavutil.mavfile) -> None: 
-        mav.mav.command_long_send(
-            mav.target_system,
-            mav.target_component,
+    def request_disarm(self) -> None: 
+        self.mav_connection.mav.command_long_send(
+            self.mav_connection.target_system,
+            self.mav_connection.target_component,
             mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
             0,
             0, 0, 0, 0, 0, 0, 0
         )
         print("[cmd] requested DISARM")
     
-    def pump_sensors(self, shared_state: SharedState, max_msgs: int = 200) -> int:
+    def pump_sensors(self, max_msgs: int = 200) -> int:
         """
         Drain all currently available MAVLink messages without blocking.
         """
@@ -157,7 +160,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
 
             if mtype == "HIGHRES_IMU":
                 t = getattr(msg, "time_usec", 0) * 1e-6 if getattr(msg, "time_usec", 0) else time.perf_counter()
-                shared_state.push_imu(
+                self.shared_state.push_imu(
                     ImuSample(
                         t=t,
                         accel=np.array([msg.xacc, msg.yacc, msg.zacc], dtype=np.float32),
@@ -167,7 +170,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
 
             elif mtype == "LOCAL_POSITION_NED":
                 t = getattr(msg, "time_boot_ms", 0) * 1e-3 if getattr(msg, "time_boot_ms", 0) else time.perf_counter()
-                shared_state.set_local_pos(
+                self.shared_state.set_local_pos(
                     LocalPositionNED(
                         t=t,
                         x=float(msg.x),
@@ -178,7 +181,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
 
             elif mtype == "ATTITUDE":
                 t = getattr(msg, "time_boot_ms", 0) * 1e-3 if getattr(msg, "time_boot_ms", 0) else time.perf_counter()
-                shared_state.set_attitude(
+                self.shared_state.set_attitude(
                     AttitudeData(
                         t=t,
                         roll=float(msg.roll),
@@ -191,7 +194,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
                 )
 
             elif mtype == "HEARTBEAT":
-                shared_state.set_heartbeat(msg)
+                self.shared_state.set_heartbeat(msg)
 
             count += 1
 

@@ -57,7 +57,7 @@ class ControlModule(FixedRateThread):
 
         yaw_angle_cmd = 0.0
         yaw_rate_cmd = 0.0
-        hover_thrust = 0.74
+        hover_thrust = 0.87
         pitch_forward = math.radians(-10.0)
 
         while not stop_evt.is_set():

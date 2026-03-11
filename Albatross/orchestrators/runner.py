@@ -16,19 +16,14 @@ class Runner:
         self._running = False
 
     def run(self):        
-        # 1. Start up connection to Sim/Drone using adapter
+        # Start up connection to Sim/Drone using adapter
         self.drone.adapter.connect()
-        
-        # Initial the drone which wraps the SharedState and holds a drones configuration i.e weight etc. 
-        # Initialize the drone using the adapter, SharedState and modules
-        self.drone.setup(self.adapter, self.pipeline)
         
         # Seed an initial neutral command so sender can start immediately
         self.drone.hover()
         
-        # 3. Initialize sensor reading i.e inititializng the pump_sensor loop to start reading independently
+        # Initialize sensor reading i.e inititializng the pump_sensor loop to start reading independently
         # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init(). 
-    
         self.drone.pipeline.pump_init()
         self.drone.pipeline.send_init()
         self.drone.pipeline.print_init()
@@ -51,7 +46,7 @@ class Runner:
             time.sleep(0.5)
             
             print("[cmd] OFFBOARD (while streaming)")
-            self.drone.offboard
+            self.drone.offboard()
    
             # 4. Initialize modules for neutral streaming, this should tell the modules that we are not in racing mode
             # we need the drones properllers to probably be spinning but nothing enough for take off. Everyting except the control module.
@@ -62,7 +57,7 @@ class Runner:
             # Depending on the drone due to weight and motor difference. 
             print("[phase] takeoff bump: level attitude, higher thrust")
             self.drone.bump_and_run()
-            time.sleep(1.5)
+            time.sleep(3)
             
             # 6. Initiate Active Control at 500Hz
             print("[phase] active: 500hz controller updating command")
@@ -75,12 +70,15 @@ class Runner:
             self.drone.hover()
             time.sleep(1.0)
             
+            
+            # Wait while we are landed then:
+            
             # 8. Requrest Disarm
             print("[cmd] DISARM")
             self.drone.disarm()
             
         finally: 
-            self.drone.stop_evt.set()
+            self.drone.pipeline.stop_evt.set()
             time.sleep(0.3)
 
             # best effort neutral stream one last time

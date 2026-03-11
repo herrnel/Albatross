@@ -8,14 +8,21 @@ class ImuSample:
     accel: np.ndarray        # (3,) m/s^2
     gyro: np.ndarray         # (3,) rad/s
     
+@dataclass    
 class AttitudeData:
     t: float               # seconds (sim time if provided)
-    vel: np.ndarray        # (3,)
-    quat: np.ndarray       # (4,) w,x,y,z (This is used instead of roll, pitch, and yaw degrees)
-    # rollspeed: float     # Don't know if we will have this yet. 
-    # pitchspeed: float
-    # yawspeed: float
-    imu: Optional[ImuSample]  # Contains IMU data. 
+    
+    roll: float
+    yaw: float
+    pitch: float
+    
+    rollspeed: float     # Don't know if we will have this yet. 
+    pitchspeed: float
+    yawspeed: float
+    
+    vel: Optional[np.ndarray] = None    # (3,)
+    quat: Optional[np.ndarray] = None       # (4,) w,x,y,z (This is used instead of roll, pitch, and yaw degrees)
+    imu: Optional[ImuSample] = None  # Contains IMU data. 
 
 @dataclass(frozen=True)
 class FrameMsg:

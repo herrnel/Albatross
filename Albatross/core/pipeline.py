@@ -1,7 +1,7 @@
 import time
 import threading
 from adapters import PlatformAdapter
-
+from core.utilities import monotonic_sleep_until
 from core.types import Module, SharedState
 
 
@@ -27,34 +27,39 @@ class Pipeline:
         
     def start_processing(self) -> None:
         for name, module in self.modules.items():
-            print(f"[Phase] Starting {name} Module")
-            self.threads[name] = module.create_thread()
+            
+            if name != "control" : # We want to initiate the control module later
+                print(f"[Phase] Starting {name} Module")
+                self.threads[name] = module.create_thread(self.stop_evt)
             
     def take_control(self) -> None:
+        print(f"[Phase] Starting control Module!")
         self.ctrl_thread = threading.Thread(
-            target=self.self.control_module.control_loop,
-            args=(self.shared_state, self.stop_evt, 500.0, "scripted"),
+            target=self.control_module.control_loop,
+            args=(self.stop_evt, 500.0),
             daemon=True,
         )
         self.ctrl_thread.start()
         
     # --- Core Send Thread Logic --- 
     def send_init(self) -> None: 
-        self.threads["send"] = threading.Thread(target=self.command_loop, args=(50.0), daemon=True)
+        self.threads["send"] = threading.Thread(target=self.command_loop, args=(50.0,), daemon=True)
 
     def send_start(self) -> None: 
         self.threads["send"].start()
-                
+    
+    
     def command_loop(
         self,
         send_hz: float = 50.0,  # Use a higher rate to avoid any “offboard loss” sensitivity
     ):
         """
-        Dedicated setpoint stream loop.
+        Dedicated setpoint stream loop. Inbetween new commands the previous one should be ran.
         PX4 offboard generally needs continuous streaming.
         """
         dt = 1.0 / send_hz
         next_t = time.perf_counter()
+        last_print = 0.0
 
         while not self.stop_evt.is_set():
             cmd = self.shared_state.get_command()
@@ -68,8 +73,26 @@ class Pipeline:
                 thrust=cmd.thrust,
             )
 
+            now_wall = time.time()
+            if now_wall - last_print > 1.0:
+                hb = self.shared_state.get_heartbeat()
+                armed_str = "unknown"
+                if hb is not None:
+                    armed_str = str(self.adapter.is_armed_from_heartbeat(hb))
+
+                print(
+                    "[stream] "
+                    f"roll={cmd.roll:.3f} "
+                    f"pitch={cmd.pitch:.3f} "
+                    f"yaw_angle={cmd.yaw_angle:.3f} "
+                    f"yaw_rate={cmd.yaw_rate:.3f} "
+                    f"thrust={cmd.thrust:.3f} "
+                    f"armed={armed_str}"
+                )
+                last_print = now_wall
+
             next_t += dt
-            self.adapter.monotonic_sleep_until(next_t)
+            monotonic_sleep_until(next_t)
         
     
     # --- Core Pump Thread Logic ---
@@ -104,7 +127,7 @@ class Pipeline:
 
             if hb is not None:
                 print(
-                    f"[hb] armed={is_armed_from_heartbeat(hb)} "
+                    f"[hb] armed={self.adapter.is_armed_from_heartbeat(hb)} "
                     f"base_mode={hb.base_mode} custom_mode={hb.custom_mode}"
                 )
             if pos is not None:
