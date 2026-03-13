@@ -78,8 +78,12 @@ def main():
     
     # Choose Modules
     modules = [
-        # VisionModule(shared_state, hz=80),
-        # EkfModule(shared_state, hz=400),
+        # GateDetectionModule
+        # GateGeometryModule
+        # StateEstimationModule
+        # ObservationModule
+        # PolicyModule
+        # SafteyModule()
         ControlModule(shared_state, hz=500, mode="scripted")
     ]
     
