@@ -1,6 +1,6 @@
 import time
 from core import Pipeline
-from adapters import PlatformAdapter
+from adapters.platform import PlatformAdapter
 from drones import Drone
 
 class Runner:
@@ -22,18 +22,22 @@ class Runner:
         # Seed an initial neutral command so command sender can start immediately
         self.drone.hover()
         
-        # Initialize sensor reading, message sending, and heartbeat logging. 
+        # Prepare non-module threads.
         # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init(). 
-        self.drone.pipeline.pump_init()
-        self.drone.pipeline.send_init()
-        self.drone.pipeline.print_init()
+        self.drone.pipeline.pump_sensors_init()
+        self.drone.pipeline.send_heartbeat_init()
+        self.drone.pipeline.send_command_init()
+        self.drone.pipeline.hb_print_init()
+        self.drone.pipeline.moh_print_init()
 
         try:
             
             # Start primary threads
-            self.drone.pipeline.pump_start() # Start collecting telemetry
-            self.drone.pipeline.send_start() # Start streaming commands (if available)
-            self.drone.pipeline.print_start() # Start logging flight data
+            self.drone.pipeline.pump_sensors_start() # Start collecting telemetry
+            self.drone.pipeline.send_heartbeat_start() # Start holding a minimum 2hz heartbeat stream with sim. 
+            self.drone.pipeline.send_command_start() # Start streaming commands (if available)
+            self.drone.pipeline.hb_print_start() # Start printing drone heartbeat/status flight data
+            self.drone.pipeline.moh_print_start() # Start printing each module's operation health. 
             
             # Neutral commands, arming, and offboard requests may be unique to Mavlink and whould probably be moved to the adapter under one command.
             # Warmup: neutral streaming before arm/offboard
@@ -49,7 +53,7 @@ class Runner:
             self.drone.offboard()
    
             # 4. Initialize modules for neutral streaming, this should tell the modules that we are not in racing mode
-            # we need the drones properllers to probably be spinning but nothing enough for take off. Everyting except the control module.
+            # we need the drones properllers to probably be spinning but nothing enough for take off. This activates everything except the control module.
             self.drone.start_processing()
                 
                 

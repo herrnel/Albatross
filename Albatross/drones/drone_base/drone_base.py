@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from core.types.telemetry.shared_state import SharedState
-from adapters.adapter_base.platform_adapter import PlatformAdapter
+from core.types.shared_data.shared_state import SharedState
+from adapters.platform import PlatformAdapter
 from core.pipeline import Pipeline
 
 class Drone(ABC):

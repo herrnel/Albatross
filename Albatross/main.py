@@ -1,12 +1,15 @@
 import argparse
 from orchestrators import Runner
 from drones import gz_x500_mono_cam
-from adapters import GazeboPx4MavlinkAdapter
-from core import Pipeline, ControlModule
+from adapters.platform.gazebo_px4_adapter.gazebo_px4_sim_adapter import GazeboPx4MavlinkAdapter
+from core import Pipeline
+from core.modules.dummy_observation_module import DummyObservationModule
+from core.modules.control_module import ControlModule
+from core.modules.safety_module import SafetyModule
 # from modules.vision import VisionModule
 # from modules.ekf import EkfModule
 
-from core.types import SharedState
+from core.types.shared_data.shared_state import SharedState
 
 
 def extract_params():
@@ -76,6 +79,7 @@ def main():
     # Create a shared state object that is thread safe from multiple modules reading and writing to it. 
     shared_state = SharedState()
     
+    
     # Choose Modules
     modules = [
         # GateDetectionModule
@@ -84,7 +88,9 @@ def main():
         # ObservationModule
         # PolicyModule
         # SafteyModule()
-        ControlModule(shared_state, hz=500, mode="scripted")
+        DummyObservationModule(shared_state),
+        ControlModule(shared_state),
+        SafetyModule(shared_state),       # whatever simple version you have
     ]
     
     # Setup adapter
