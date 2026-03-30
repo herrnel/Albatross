@@ -10,6 +10,9 @@ from adapters.platform.adapter_base.platform_adapter import PlatformAdapter
 from core.utilities import quat_from_euler
 
 
+from colorama import Fore, Back, Style, init
+
+
 class GazeboPx4MavlinkAdapter(PlatformAdapter):
     """
     MAVLink adapter for PX4 SITL/real that:
@@ -39,7 +42,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         self._last_action: Optional[Command] = None
         
     def connect(self) -> None:
-        print("[info] connecting:", self.endpoint)
+        print("INFO  connecting:", self.endpoint)
         self.mav_connection = mavutil.mavlink_connection(self.endpoint)
 
         hb = self.mav_connection.wait_heartbeat(timeout=self.heartbeat_timeout)
@@ -53,7 +56,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
         self.shared_state.sensors.heartbeat_rx.publish(hb_data, t_ns=now_ns)
 
         print(
-            "[info] heartbeat OK from sysid/compid:",
+            "INFO  heartbeat OK from sysid/compid:",
             self.mav_connection.target_system,
             self.mav_connection.target_component,
         )
@@ -148,14 +151,14 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
             0,
             1, 0, 0, 0, 0, 0, 0,
         )
-        print("[cmd] requested ARM")
+        print(f"INFO  {Fore.LIGHTYELLOW_EX}[cmd]{Style.RESET_ALL} requested ARM")
 
     def request_offboard(self) -> None:
         try:
             self.mav_connection.set_mode("OFFBOARD")
-            print("[cmd] requested OFFBOARD SUCCESSFUL")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[cmd]{Style.RESET_ALL} requested OFFBOARD SUCCESSFUL")
         except Exception as e:
-            print("[cmd] OFFBOARD request failed:", e)
+            print(f"{Fore.YELLOW}WARN{Style.RESET_ALL}  {Fore.LIGHTYELLOW_EX}[cmd]{Style.RESET_ALL} OFFBOARD request failed:", e)
 
     def request_disarm(self) -> None:
         self.mav_connection.mav.command_long_send(
@@ -165,7 +168,7 @@ class GazeboPx4MavlinkAdapter(PlatformAdapter):
             0,
             0, 0, 0, 0, 0, 0, 0,
         )
-        print("[cmd] requested DISARM")
+        print(f"INFO  {Fore.LIGHTYELLOW_EX}[cmd]{Style.RESET_ALL} requested DISARM")
         
     # -----------------------------
     # Inbound MAVLink telemetry

@@ -3,10 +3,11 @@ from core import Pipeline
 from adapters.platform import PlatformAdapter
 from drones import Drone
 
+from colorama import Fore, Back, Style, init
+
 class Runner:
     """
-    Here make an attempt to have the runner loop run at 500hz but its not necessary. 
-    This should 
+    This is where all the "phases" for the drone flight is defined. 
     """
         
     def setup(self, drone: Drone,  adapter: PlatformAdapter, pipline: Pipeline) -> None:
@@ -15,7 +16,9 @@ class Runner:
         self.pipeline = pipline 
         self._running = False
 
-    def run(self):        
+    def run(self):  
+        print(f"{Fore.MAGENTA}I feel the need — the need for speed!{Style.RESET_ALL}")
+              
         # Start up connection to Sim/Drone using adapter
         self.drone.adapter.connect()
         
@@ -23,16 +26,18 @@ class Runner:
         self.drone.hover()
         
         # Prepare non-module threads.
-        # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init(). 
+        # These could probably exists in the drone and should be stored by the adapter. like Drone.pump_init(), Drone.send_init() Drone.print_init().
+        print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}preparing non-module threads{Style.RESET_ALL}")
         self.drone.pipeline.pump_sensors_init()
         self.drone.pipeline.send_heartbeat_init()
         self.drone.pipeline.send_command_init()
         self.drone.pipeline.hb_print_init()
         self.drone.pipeline.moh_print_init()
-
+        
         try:
             
             # Start primary threads
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}running non-module threads{Style.RESET_ALL}")
             self.drone.pipeline.pump_sensors_start() # Start collecting telemetry
             self.drone.pipeline.send_heartbeat_start() # Start holding a minimum 2hz heartbeat stream with sim. 
             self.drone.pipeline.send_command_start() # Start streaming commands (if available)
@@ -42,43 +47,49 @@ class Runner:
             # Neutral commands, arming, and offboard requests may be unique to Mavlink and whould probably be moved to the adapter under one command.
             # Warmup: neutral streaming before arm/offboard
             
-            print("[phase] warmup: neutral streaming")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}warmup: pause for neutral streaming{Style.RESET_ALL}")
             time.sleep(2.0)
             
-            print("[cmd] ARM (while streaming)")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}ARM Drone (while streaming){Style.RESET_ALL}")
             self.drone.arm()
             time.sleep(0.5)
             
-            print("[cmd] OFFBOARD (while streaming)")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}Request OFFBOARD (while streaming){Style.RESET_ALL}")
             self.drone.offboard()
+            
+            print(f"{Fore.MAGENTA}Talk to me, Goose{Style.RESET_ALL}")
    
             # 4. Initialize modules for neutral streaming, this should tell the modules that we are not in racing mode
             # we need the drones properllers to probably be spinning but nothing enough for take off. This activates everything except the control module.
             self.drone.start_processing()
-                
+            
+            print(f"{Fore.MAGENTA}Ready for take off!{Style.RESET_ALL}")
                 
             # 5. Next should be the takeoff bump this should be a consistent adapter command but with different implementaions 
             # Depending on the drone due to weight and motor difference. 
-            print("[phase] takeoff bump: level attitude, higher thrust")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}Takeoff bump: level attitude, higher thrust{Style.RESET_ALL}")
             self.drone.bump_and_run()
             time.sleep(3)
             
-            # 6. Initiate Active Control at 500Hz
-            print("[phase] active: 500hz controller updating command")
+            
+            print(f"{Fore.MAGENTA}C'mon Mav! Do some of that pilot shit!{Style.RESET_ALL}")
+            
+            # 6. Initiate Active Control at 120Hz
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}Activate controller {Style.RESET_ALL}")
             self.drone.take_control() # This should essentailly start the control module
             time.sleep(3.0)
             
 
             # 7. Initiate cooldown to neutral 
-            print("[phase] cooldown: neutral")
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}cooldown: neutral{Style.RESET_ALL}")
             self.drone.hover()
             time.sleep(1.0)
             
             
             # Wait while we are landed then:
             
-            # 8. Requrest Disarm
-            print("[cmd] DISARM")
+            # 8. Requrest Disarm - TODO should only be disarming once we have landed the drone. 
+            print(f"INFO  {Fore.LIGHTYELLOW_EX}[phase]{Style.RESET_ALL} {Fore.YELLOW}DISARM Drone{Style.RESET_ALL}")
             self.drone.disarm()
             
         finally: 

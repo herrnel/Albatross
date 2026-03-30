@@ -37,7 +37,7 @@ class Pipeline:
         for name, module in self.modules.items():
             
             if name != "control" : # We want to initiate the control module later
-                print(f"[Phase] Starting {name} Module")
+                print(f"INFO  {Fore.LIGHTYELLOW_EX}[stack]{Style.RESET_ALL} {Fore.YELLOW}Running {name} module{Style.RESET_ALL}")
                 
                 # Create a thread for the module. Note that each module must implement the ModuleBase class
                 self.threads[name] = module.create_thread(self.stop_evt) 
@@ -50,7 +50,7 @@ class Pipeline:
             To change the _Hz_ in which this **control module** runs you can change it in `main.py`
         """
         
-        print(f"[Phase] Starting control Module!")
+        print(f"INFO  {Fore.LIGHTYELLOW_EX}[stack]{Style.RESET_ALL} {Fore.YELLOW}Running control module{Style.RESET_ALL}")
         self.ctrl_thread = self.control_module.create_thread(self.stop_evt)
         self.ctrl_thread.start()
         
@@ -94,7 +94,7 @@ class Pipeline:
             try:
                 self.adapter.send_heartbeat()
             except Exception as e:
-                print(f"[heartbeat_tx] send failed: {e}")
+                print(f"{Fore.YELLOW}WARN{Style.RESET_ALL} [hb_tx] send failed: {e}")
 
             # Optional once-per-second debug print
             if (now_ns - last_print_ns) >= 1_000_000_000:
@@ -105,7 +105,7 @@ class Pipeline:
                 rx_age_ms = self.shared_state.sensors.heartbeat_rx.age_ms(now_ns=now_ns)
 
                 print(
-                    "[heartbeat] "
+                    f"INFO  {Fore.LIGHTYELLOW_EX}[hb_tx]{Style.RESET_ALL} "
                     f"tx_seq={hb_tx_seq if hb_tx is not None else 'none'} "
                     f"tx_age_ms={tx_age_ms if tx_age_ms is not None else 'n/a'} "
                     f"rx_seq={hb_rx_seq if hb_rx is not None else 'none'} "
@@ -195,7 +195,7 @@ class Pipeline:
                     hb_age_ms = self.shared_state.sensors.heartbeat_rx.age_ms(now_ns=now_ns)
 
                 print(
-                    "[stream] "
+                    f"INFO  {Fore.LIGHTYELLOW_EX}[stream]{Style.RESET_ALL} "
                     f"cmd_seq={cmd_seq if cmd is not None else 'none'} "
                     f"roll={last_cmd.roll:.3f} "
                     f"pitch={last_cmd.pitch:.3f} "
@@ -254,16 +254,16 @@ class Pipeline:
             if hb is not None:
                 hb_age_ms = self.shared_state.sensors.heartbeat_rx.age_ms(now_ns=now_ns)
                 print(
-                    f"[hb] age_ms={hb_age_ms:.1f} "
+                    f"INFO  {Fore.LIGHTYELLOW_EX}[hb_rx]{Style.RESET_ALL} age_ms={hb_age_ms:.1f} "
                     f"armed={hb.armed} "
-                    f"mode={hb.mode} "
+                    f"mode=({hb.mode}) "
                     f"base_mode={hb.base_mode} "
                     f"custom_mode={hb.custom_mode}"
                 )
                 
             if status is not None:
                 print(
-                    f"[status] armed={status.armed} "
+                    f"INFO  {Fore.LIGHTYELLOW_EX}[status]{Style.RESET_ALL} armed={status.armed} "
                     f"offboard={status.offboard_enabled} "
                     f"mode={status.mode} "
                     f"failsafe={status.failsafe}"
@@ -272,7 +272,7 @@ class Pipeline:
             if pos is not None:
                 pos_age_ms = self.shared_state.sensors.local_pos.age_ms(now_ns=now_ns)
                 print(
-                    f"[pos] age_ms={pos_age_ms:.1f} "
+                    f"INFO  {Fore.LIGHTYELLOW_EX}[pos]{Style.RESET_ALL} age_ms={pos_age_ms:.1f} "
                     f"x={pos.x_m:.2f} y={pos.y_m:.2f} z={pos.z_m:.2f}"
                 )
 
@@ -296,7 +296,7 @@ class Pipeline:
                     age_ms = None
                     if health.last_tick_time_ns is not None:
                         age_ms = (now_ns - health.last_tick_time_ns) / 1_000_000.0
-                    print(f"{Fore.BLUE}[moh]{Style.RESET_ALL} {name}: status={health.status}, age_ms={age_ms}, info={health.info}")
+                    print(f"INFO  {Fore.LIGHTYELLOW_EX}[moh]{Style.RESET_ALL} {name}: status={health.status}, age_ms={age_ms}, info={health.info}")
 
             time.sleep(1.0)
                 
