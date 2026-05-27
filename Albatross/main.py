@@ -1,7 +1,8 @@
 import argparse
 from orchestrators import Runner
 from drones import gz_x500_mono_cam
-from adapters.platform.gazebo_px4_adapter.gazebo_px4_sim_adapter import GazeboPx4MavlinkAdapter
+from adapters import GazeboPx4MavlinkAdapter
+from adapters import GazeboGstVisionAdapter
 from core import Pipeline
 from core.modules.dummy_observation_module import DummyObservationModule
 from core.modules.control_module import ControlModule
@@ -58,6 +59,7 @@ def extract_params():
     match args.adapter:
         case "GazeboPx4":
             adapter = GazeboPx4MavlinkAdapter()
+            vision_adapter = GazeboGstVisionAdapter()
         case _:
             print("")
     
@@ -67,14 +69,14 @@ def extract_params():
         case _:
             print("")
     
-    return (drone, adapter, runner)
+    return (drone, adapter, vision_adapter, runner)
 
 def main():
     """
     This should be running as fast has computation allows. 
     """
     # Get flight configuration
-    drone, adapter, runner = extract_params()
+    drone, adapter, vision_adapter, runner = extract_params()
     
     # Create a shared state object that is thread safe from multiple modules reading and writing to it. 
     shared_state = SharedState()
@@ -93,17 +95,24 @@ def main():
         SafetyModule(shared_state),       # whatever simple version you have
     ]
     
-    # Setup adapter
+    # Setup platform adapter
     adapter.setup(shared_state)
     
+    # Setup Vision adapter
+    vision_adapter.setup(
+        shared_state=shared_state,
+        udp_port=5601,
+        camera_name="x500_mono_cam",
+    )
+    
     # Initialize the module manager 
-    pipeline = Pipeline(modules, adapter, shared_state)
+    pipeline = Pipeline(modules, adapter, vision_adapter, shared_state, enable_logging=True)
     
     # Setup drone 
-    drone.setup(adapter, pipeline)
+    drone.setup(adapter, vision_adapter, pipeline)
 
     # Setup the flight orchestrator
-    runner.setup(drone, adapter, pipeline)
+    runner.setup(drone, adapter, vision_adapter, pipeline)
 
     runner.run()
 
