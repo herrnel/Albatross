@@ -1,3 +1,4 @@
 [submodule "external/PX4-Autopilot"]
 	path = external/PX4-Autopilot
-	url = https://github.com/PX4/PX4-Autopilot.git
+	url = https://github.com/herrnel/PX4-Autopilot.git
+	branch = ai-grand-prix
