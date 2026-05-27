@@ -4,4 +4,5 @@
 	branch = ai-grand-prix
 [submodule "external/mav_simulator"]
 	path = external/mav_simulator
-	url = https://github.com/UIUC-Robotics/mav_simulator.git
+	url = https://github.com/herrnel/mav_simulator.git
+	branch = ai-grand-prix
